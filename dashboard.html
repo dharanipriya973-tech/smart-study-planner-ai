@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>AI Planner</h2>
+    <a href="/dashboard">🏠 Dashboard</a>
+    <a href="/history">📊 History</a>
+    <a href="/parent_portal">👨‍👩‍👧 Parent</a>
+    <a href="/logout">🚪 Logout</a>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="container">
+    <h1>Smart AI Planner</h1>
+
+    <p>{{ quote or 'Let’s start planning!' }}</p>
+
+    <form method="POST" action="/add_subject" class="form-inline">
+        <input name="subject" placeholder="Subject" required>
+        <select name="difficulty">
+            <option value="1">Easy</option>
+            <option value="2">Medium</option>
+            <option value="3">Hard</option>
+        </select>
+        <input type="date" name="exam_date" placeholder="Exam date (optional)">
+        <button type="submit">Add Subject</button>
+    </form>
+
+    <div class="section-block">
+        <h2 class="section-title">Key Stats</h2>
+        <div class="stats-grid">
+            <div class="stat-card"><strong>{{ days_left or 0 }}</strong> Days left</div>
+            <div class="stat-card"><strong>{{ percent or 0 }}%</strong> Progress</div>
+            <div class="stat-card"><strong>{{ status or 'Not started' }}</strong> Status</div>
+            <div class="stat-card"><strong>{{ gamification.points }}</strong> Points</div>
+            <div class="stat-card"><strong>{{ gamification.streak }}</strong> Streak</div>
+            <div class="stat-card"><strong>{{ gamification.badges or 'None' }}</strong> Badges</div>
+        </div>
+    </div>
+
+    <ul>
+    {% for sub in subjects %}
+        <li>
+            <strong>{{ sub.name }}</strong> ({{ sub.difficulty }}) - due: {{ sub.exam_date or 'not set' }}
+            <a href="/delete_subject/{{ sub.id }}"><button type="button">❌</button></a>
+        </li>
+    {% else %}
+        <li>No subjects added yet</li>
+    {% endfor %}
+    </ul>
+
+    <div style="margin-top: 12px;">
+        <a href="/clear_subjects"><button type="button">Clear all subjects</button></a>
+        <a href="/reset_progress"><button type="button">Reset progress</button></a>
+    </div>
+
+    <form method="POST" action="/generate">
+        <input type="date" name="exam_date" required>
+        <button type="submit">Generate</button>
+    </form>
+
+    <section>
+        <h2>Recommended Study Plan</h2>
+        <div>
+            {% for rec in recommendations %}
+                <p>🔍 {{ rec }}</p>
+            {% endfor %}
+        </div>
+
+        <h2>AI Exam Predictor</h2>
+        <p>🎯 Predicted score: <strong>{{ predicted_score }}%</strong></p>
+
+        <div id="toast-container" style="display:none;"></div>
+        <h2>Analytics Dashboard</h2>
+        {% if subject_progress %}
+            <div class="section-block" style="margin-bottom: 15px;">
+                <h3>Subject Strengths</h3>
+                {% for progress in subject_progress %}
+                    <div>{{ progress.name }} ({{ progress.percent }}%)</div>
+                    <div class="progress" style="margin-bottom: 6px;"><div class="progress-bar" data-width="{{ progress.bar_width }}" style="width: 0;"></div></div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Add subjects and generate a plan to track progress.</p>
+        {% endif %}
+
+        <h2>Group Study Sessions</h2>
+        <ul>
+            {% for s in group_sessions %}
+            <li>{{ s[1] }} (Owner: {{ s[2] }}) Participants: {{ s[3] }}
+                <a href="/delete_session/{{ s[0] }}"><button type="button">Delete session</button></a>
+            </li>
+            {% endfor %}
+            {% if not group_sessions %}
+            <li>No active group sessions yet.</li>
+            {% endif %}
+        </ul>
+
+        <form method="POST" action="/create_session" style="margin-top: 10px;">
+            <input name="session_name" placeholder="Session name" required>
+            <input name="participants" placeholder="Participants (comma separated)">
+            <input name="notes" placeholder="Notes (optional)">
+            <button type="submit">Create Group Session</button>
+        </form>
+
+        <h2>Resources</h2>
+        <ul>
+            {% for r in resources %}
+            <li>[{{ r[2] }}] <a href="{{ r[4] }}" target="_blank">{{ r[3] }}</a> ({{ r[1] }})
+                <a href="/delete_resource/{{ r[0] }}"><button type="button">Delete</button></a>
+            </li>
+            {% endfor %}
+            {% if not resources %}
+            <li>No resources added yet.</li>
+            {% endif %}
+        </ul>
+
+        <h3>Suggested Study Channels & Sites</h3>
+        <ul class="suggested-resources">
+            <li><a href="https://www.youtube.com/" target="_blank">YouTube</a></li>
+            <li><a href="https://www.coursera.org/" target="_blank">Coursera</a></li>
+            <li><a href="https://www.edx.org/" target="_blank">edX</a></li>
+            <li><a href="https://www.khanacademy.org/" target="_blank">KhanAcademy.org</a></li>
+            <li><a href="https://quizlet.com/" target="_blank">Quizlet</a> (Practice quizzes)</li>
+        </ul>
+        <p class="small-text">Tip: Choose <code>resource_type=video</code> for YouTube and <code>quiz</code> for Quizlet links.</p>
+
+        <form method="POST" action="/add_resource" style="margin-top: 10px;">
+            <input name="subject" placeholder="Subject" required>
+            <input name="resource_type" placeholder="Type (video/notes/quiz)" required>
+            <input name="title" placeholder="Title" required>
+            <input name="url" placeholder="URL" required>
+            <button type="submit">Add Resource</button>
+        </form>
+
+        <h2>Parent/Teacher Portal</h2>
+        <p>Any guardian can get access using a code via <a href="/parent_portal">Parent Portal</a>.</p>
+
+        <h2>Offline Mode</h2>
+        <p>Download your local data snapshot for offline use: <a href="/export_data" target="_blank">Export JSON</a></p>
+
+        <h2>🤖 AI Chatbot</h2>
+
+<div class="chatbox" id="chatbox"></div>
+
+<div class="chat-input">
+    <input id="chat-input" placeholder="Ask something..." />
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="startVoice()">🎤</button>
+</div>
+    </section>
+
+    {% if timetable %}
+        <table>
+            <thead>
+                <tr><th>Time</th><th>Task</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+            {% for t in timetable %}
+                <tr>
+                    <td>{{ t.time }}</td>
+                    <td>{{ t.task }}</td>
+                    <td>
+                        {% if t.task in done_tasks %}
+                            <span style="color: #2ecc71;">Done</span>
+                            <a href="/toggle_complete/{{ t.task | urlencode }}"><button type="button">Undo</button></a>
+                        {% else %}
+                            <a href="/toggle_complete/{{ t.task | urlencode }}"><button type="button">Done</button></a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 16px;">
+            <a href="/history"><button type="button">History</button></a>
+            <a href="/logout"><button type="button" class="logout">Logout</button></a>
+        </div>
+    {% endif %}
+
+</div>
+<script id="dashboard-data" type="application/json">{{ {'timetable': timetable, 'notifications': notifications, 'popup_notifications': popup_notifications, 'percent': percent} | tojson }}</script>
+<script>
+const dashboardData = JSON.parse(document.getElementById('dashboard-data').textContent || '{}');
+let subjects = [];
+try{
+    subjects = JSON.parse('{{ subjects | tojson | safe }}');
+}catch(e){
+    console.log("Subjects not loaded");
+}
+
+const firstSession = dashboardData.timetable && dashboardData.timetable.length > 0 ? dashboardData.timetable[0] : null;
+const currentPercent = dashboardData.percent || 0;
+
+function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const chatbox = document.getElementById("chatbox");
+
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    // User message (right side)
+    const userMsg = document.createElement("div");
+    userMsg.className = "message user";
+    userMsg.textContent = msg;
+    chatbox.appendChild(userMsg);
+    input.value="";
+
+    // Auto scroll ↓
+    chatbox.scrollTop = chatbox.scrollHeight;
+
+    //Delay for realism
+    setTimeout(()=>{
+        chatbox.removeChild(typingIndicator);
+        const replyText=getAIResponse(msg);
+        const botMsg=document.createElement("div");
+        botMsg.className="message bot";
+        botMsg.textContent=replyText;
+        chatbox.appendChild(botMsg);
+        chatbox.scrollTop=chatbox.scrollHeight;
+    },1000);
+    
+    if(window.isSending)return;
+    window.isSending=true;
+    setTimeout(()=>
+        window.isSending=false,500);
+
+    // AI reply
+    const replyText = getAIResponse(msg);
+
+    const botMsg = document.createElement("div");
+    botMsg.className = "message bot";
+    botMsg.textContent = replyText;
+    chatbox.appendChild(botMsg);
+
+    input.value = "";
+
+}
+
+function getAIResponse(msg) {
+    msg = msg.toLowerCase();
+
+    if (msg.includes("next")) {
+        return firstSession 
+            ? `📅 Next: ${firstSession.time} - ${firstSession.task}`
+            : "No sessions found";
+    }
+
+    if (msg.includes("progress")) {
+        return  `Progress: ${currentPercent}%`;
+    }
+
+    if (msg.includes("subject")) {
+        return "📚 Subjects: " + subjects.map(s => s.name).join(", ");
+    }
+
+    if (msg.includes("motivate")) {
+        const quotes = [
+            "🔥 Keep going, success is near!",
+            "💪 Consistency is key!",
+            "🚀 You are improving every day!"
+        ];
+        return quotes[Math.floor(Math.random()*quotes.length)];
+    }
+
+    if (msg.includes("time")) {
+        return new Date().toLocaleTimeString();
+    }
+
+    return "🤖 Ask me about next session, progress, subjects or motivation!";
+}
+
+// Notification popups
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container || !message) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('visible'), 10);
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => container.removeChild(toast), 300);
+    }, 3500);
+}
+
+function startVoice() {
+    try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert("Voice not supported in this browser 😢 Use Chrome");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-IN";
+
+        recognition.start();
+
+        recognition.onresult = function(event) {
+            const text = event.results[0][0].transcript;
+            document.getElementById("chat-input").value = text;
+            sendMessage();
+        };
+
+        recognition.onerror = function(event) {
+            console.log("Voice error:", event.error);
+            alert("Mic issue or permission denied ⚠️");
+        };
+
+    } catch (err) {
+        alert("Voice feature failed ❌");
+    }
+}
+
+function checkReminders() {
+    if (!dashboardData.timetable) return;
+
+    const now = new Date();
+
+    dashboardData.timetable.forEach(task => {
+        const taskTime = new Date(task.time);
+
+        const diff = (taskTime - now) / (1000 * 60); // minutes
+
+        if (diff > 0 && diff < 30) {
+            showToast("⏰ Upcoming: " + task.task + " at " + task.time);
+        }
+    });
+}
+
+// Run every 1 min
+setInterval(checkReminders, 60000);
+
+const toastMessages = (dashboardData.popup_notifications || []).concat(dashboardData.notifications || []);
+
+toastMessages.forEach((msg) => showToast(msg));
+
+// Apply progress bar widths from server data
+document.querySelectorAll('.progress-bar').forEach((el) => {
+    const w = el.getAttribute('data-width');
+    if (w !== null) {
+        el.style.width = `${w}%`;
+    }
+});
+// Handle Enter key for chat input
+document.getElementById("chat-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+</script>
+</div>
+ </div>
+</div>
+</body>
+</html>

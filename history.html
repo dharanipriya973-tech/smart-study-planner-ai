@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+<h2>History</h2>
+
+<table>
+<tr><th>Subjects</th><th>Date</th><th>Action</th></tr>
+{% for row in data %}
+<tr>
+<td>{{ row[1] }}</td>
+<td>{{ row[2] }}</td>
+<td>
+    <a href="/delete_history/{{ row[0] }}"><button type="button">Delete</button></a>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+<a href="/dashboard"><button>Back</button></a>
+</div>
+
+</body>
+</html>

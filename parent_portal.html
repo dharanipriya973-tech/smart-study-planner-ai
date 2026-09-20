@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Portal — Smart Study Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Parent/Teacher Portal</h1>
+
+        {% if message %}
+        <p style="color: #8dff8c;">{{ message }}</p>
+        {% endif %}
+
+        <form method="POST" class="auth-form">
+            <input name="child_user" placeholder="Student username" required>
+            <input name="parent_email" placeholder="Parent or teacher email" required>
+            <input name="access_code" placeholder="Access code" required>
+            <button type="submit">Grant Access</button>
+        </form>
+
+        <p><a href="/dashboard">Back to Dashboard</a></p>
+    </div>
+</body>
+</html>
